@@ -1,2 +1,2 @@
 # doppel
-A Bayesian method for quantifying the ability of a simulator to represent real data
+A Bayesian method for quantifying the goodness-of-fit of a model/simulator compared to real data without a likelihood
