@@ -43,7 +43,7 @@ class Simulator(swyft.Simulator):
         return 1e21 * np.random.normal(0.0, np.sqrt(self.sim_psd))
 
     def generate_real_data(self):
-        return 2 * 1e21 * np.random.normal(0.0, np.sqrt(self.sim_psd))
+        return 1e21 * np.random.normal(0.0, np.sqrt(self.real_psd))
 
     def sample_data(self, model):
         if model == 0:
