@@ -30,20 +30,20 @@ if __name__ == "__main__":
 
     config = {
         "store_name": f"gw-noise-store",
-        "store_size": 10_000,
+        "store_size": 200_000,
         "chunk_size": 500,
         "observation_path": None,
         "logratios_path": f"gw-noise-logratios",
         "trainer_dir": f"gw-noise-trainer",
         "resampler_targets": ["data"],
         "train_fraction": 0.9,
-        "train_batch_size": 16,
-        "val_batch_size": 16,
-        "num_workers": 0,
-        "device": "cpu",
-        "n_gpus": 0,
+        "train_batch_size": 1024,
+        "val_batch_size": 1024,
+        "num_workers": 8,
+        "device": "gpu",
+        "n_gpus": 1,
         "min_epochs": 1,
-        "max_epochs": 30,
+        "max_epochs": 100,
         "early_stopping": 7,
         "infer_only": False,
     }
@@ -68,8 +68,8 @@ if __name__ == "__main__":
     )
     prior_samples = swyft.Samples({"model": np.array([[0], [1]])})
 
-    model_probabilities_saved_sims = np.zeros((1000, 3))
-    for i in range(0, 1000):
+    model_probabilities_saved_sims = np.zeros((10000, 3))
+    for i in range(0, 10000):
         sim_observation = simulator.sample(
             targets=["data"], conditions={"model": np.array([0])}
         )
@@ -85,8 +85,8 @@ if __name__ == "__main__":
         np.array(model_probabilities_saved_sims),
     )
 
-    model_probabilities_saved_real = np.zeros((1000, 3))
-    for i in range(0, 1000):
+    model_probabilities_saved_real = np.zeros((10000, 3))
+    for i in range(0, 10000):
         sim_observation = simulator.sample(
             targets=["data"], conditions={"model": np.array([1])}
         )
@@ -118,4 +118,4 @@ if __name__ == "__main__":
         alpha=0.5,
         color="tab:red",
     )
-    plt.show()
+    plt.savefig('/home/alveyjbg/viewer.png')

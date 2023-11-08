@@ -32,18 +32,37 @@ SIMULATOR AND CLASS ESTIMATOR NETWORKS (REQUIRES MODIFICATION)
 class Simulator(swyft.Simulator):
     def __init__(self):
         super().__init__()
-        self.sim_psd = np.loadtxt("PSD/150914.dat")[::2, 1]
-        self.real_psd = np.loadtxt("PSD/170823.dat")[:, 1]
+        #self.f_array = np.linspace(-1, 1, 10)
+        #self.sim_psd = np.loadtxt("PSD/150914.dat")[::2, 1]
+        #self.sim_psd = 2.0 * self.f_array**2 + 1.0
+        #self.real_psd = np.loadtxt("PSD/170823.dat")[:, 1]
+        #self.real_psd = 0.5 * self.f_array**2 + 1.0
+        self.f_array = np.geomspace(3e-1, 1e2, 10)
         self.transform_samples = swyft.to_numpy32
+    
+    def sim_PSD(self, f, normalization=1.0):
+        return (
+            normalization
+            * 9
+            * ((4.49 * f) ** (-56) + 0.16 * f ** (-4.52) + 0.52 + 0.32 * f**2)
+        )
+
+
+    def real_PSD(self, f, normalization=1.0):
+        return (
+            normalization
+            * 11.0
+            * ((4.49 * f) ** (-57) + 0.2 * f ** (-4.7) + 0.56 + 0.39 * f**1.75)
+        )
 
     def sample_model(self):
         return np.array([np.random.choice(2)])
 
     def generate_sim_data(self):
-        return 1e21 * np.random.normal(0.0, np.sqrt(self.sim_psd))
+        return np.random.normal(0.0, np.sqrt(self.sim_PSD(self.f_array)))
 
     def generate_real_data(self):
-        return 1e21 * np.random.normal(0.0, np.sqrt(self.real_psd))
+        return np.random.normal(0.0, np.sqrt(self.real_PSD(self.f_array)))
 
     def sample_data(self, model):
         if model == 0:
@@ -67,9 +86,9 @@ class RatioEstimator(swyft.SwyftModule):
             num_features=3, num_params=1, varnames="model"
         )
         self.online_normalisation = swyft.networks.OnlineStandardizingLayer(
-            shape=torch.Size([4016])
+            shape=torch.Size([10])
         )
-        self.optimizer_init = swyft.AdamOptimizerInit(lr=5e-5)
+        self.optimizer_init = swyft.AdamOptimizerInit(lr=1e-4)
 
     def forward(self, A, B):
         data = A["data"]
@@ -87,9 +106,7 @@ class LinearCompression(nn.Module):
     def __init__(self, n_features):
         super(LinearCompression, self).__init__()
         self.sequential = nn.Sequential(
-            nn.LazyLinear(1000),
-            nn.ReLU(),
-            nn.LazyLinear(200),
+            nn.LazyLinear(10),
             nn.ReLU(),
             nn.LazyLinear(10),
             nn.ReLU(),
@@ -214,20 +231,20 @@ if __name__ == "__main__":
 
     config = {
         "store_name": f"gw-noise-store",
-        "store_size": 10_000,
+        "store_size": 200_000,
         "chunk_size": 500,
         "observation_path": None,
         "logratios_path": f"gw-noise-logratios",
         "trainer_dir": f"gw-noise-trainer",
         "resampler_targets": ["data"],
         "train_fraction": 0.9,
-        "train_batch_size": 16,
-        "val_batch_size": 16,
-        "num_workers": 0,
-        "device": "cpu",
-        "n_gpus": 0,
+        "train_batch_size": 1024,
+        "val_batch_size": 1024,
+        "num_workers": 8,
+        "device": "gpu",
+        "n_gpus": 1,
         "min_epochs": 1,
-        "max_epochs": 30,
+        "max_epochs": 100,
         "early_stopping": 7,
         "infer_only": False,
     }
