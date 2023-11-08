@@ -33,21 +33,21 @@ if __name__ == "__main__":
     amp = int(args[1])
     config = {
         "store_name": f"single-bin-store-{bkg}-{amp}",
-        "store_size": 10_000,
+        "store_size": 100_000,
         "chunk_size": 500,
         "observation_path": None,
         "logratios_path": f"single-bin-logratios-{bkg}-{amp}",
         "trainer_dir": f"single-bin-trainer-{bkg}-{amp}",
         "resampler_targets": ["data"],
-        "train_fraction": 0.9,
-        "train_batch_size": 16,
-        "val_batch_size": 16,
-        "num_workers": 0,
-        "device": "cpu",
-        "n_gpus": 0,
+        "train_fraction": 0.85,
+        "train_batch_size": 512,
+        "val_batch_size": 512,
+        "num_workers": 8,
+        "device": "gpu",
+        "n_gpus": 1,
         "min_epochs": 1,
-        "max_epochs": 30,
-        "early_stopping": 7,
+        "max_epochs": 80,
+        "early_stopping": 15,
         "infer_only": False,
     }
     simulator = Simulator(bkg=bkg, amp=amp)
@@ -71,8 +71,8 @@ if __name__ == "__main__":
     )
     prior_samples = swyft.Samples({"model": np.array([[0], [1]])})
 
-    model_probabilities_saved_sims = np.zeros((1000, 4))
-    for i in range(0, 1000):
+    model_probabilities_saved_sims = np.zeros((10000, 4))
+    for i in range(0, 10000):
         sim_observation = simulator.sample(
             targets=["data"], conditions={"model": np.array([0])}
         )

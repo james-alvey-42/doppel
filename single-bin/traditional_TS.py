@@ -25,6 +25,14 @@ def TS(x, theta, bkg=10):
     log_L2 = -(bkg + theta) + x * np.log(bkg + theta)
     return -2 * (log_L1 - log_L2)
 
+def get_Nobs(p_sig, bkg_):
+    d = np.random.poisson(bkg_, 100000)
+    TS_vals = TS(d, 1, bkg=bkg_)
+    critical_TS = np.quantile(TS_vals, [1 - p_sig])
+    num_events = np.unique(d)
+    TS_unique = np.unique(TS_vals)
+    return num_events[np.where(TS_unique == critical_TS)][0]
+
 
 def p_a(x0_, alpha, bkg_, plots=False):
     d = np.random.poisson(bkg_, 100000)
@@ -49,5 +57,7 @@ def find_Nobs(p_sig, bkg_):
 
 if __name__ == "__main__":
     bkgs = np.linspace(1, 100, 100)
-    N_obs_list = np.array([(find_Nobs(0.1, bkg_) - bkg_) for bkg_ in bkgs])
-    np.save("output/traditional_ts.npy", np.array([bkgs, N_obs_list]).T)
+    p_sig = 0.32
+    #N_obs_list = np.array([(find_Nobs(0.01, bkg_) - bkg_) for bkg_ in bkgs])
+    N_obs_list = np.array([(get_Nobs(p_sig, bkg_) - bkg_) for bkg_ in bkgs])
+    np.save(f"output/traditional_ts_{p_sig}.npy", np.array([bkgs, N_obs_list]).T)
