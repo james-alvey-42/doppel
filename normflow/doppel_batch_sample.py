@@ -15,7 +15,6 @@ import glob
 import numpy as np
 import swyft
 import torch
-import tqdm
 
 
 def get_class_probs(lrs, params):
@@ -74,74 +73,40 @@ if __name__ == "__main__":
     trainer.test(
         network, val_data, glob.glob(config["trainer_dir"] + "/epoch*.ckpt")[0]
     )
-    prior_samples = swyft.Samples({"model": np.array([[0], [1]])})
+    #prior_samples = swyft.Samples({"model": np.array([[0], [1]])})
 
-    Nsim = 1000
-    model_probabilities_saved_sims = np.zeros((Nsim, 3))
-    # sim_observations = simulator.sample(Nsim,
-    #         targets=["data"], conditions={"model": np.array([0])}
-    #     )
-    # with torch.no_grad():
-    #     lp_sim_0 = network({'data': torch.tensor(sim_observations['data'])}, {'model': torch.tensor(sim_observations['model'])}).logratios
-    #     lp_sim_1 = network({'data': torch.tensor(sim_observations['data'])}, {'model': torch.tensor([[1]])}).logratios
-    # print(lp_sim_0)
-    # print(lp_sim_1)
-    network.eval()
-    for i in tqdm.tqdm(range(0, Nsim)):
-        sim_observation = simulator.sample(
+    print("Simulated data generation")
+    Nsim = 100000
+    A_sim = simulator.sample(Nsim,
             targets=["data"], conditions={"model": np.array([0])}
         )
-        #sim_observation = sim_observations[i]
-        # logratios = trainer.infer(
-        #     network, sim_observation, prior_samples.get_dataloader(batch_size=2048)
-        # )
-        # print(get_class_probs(logratios, params=["model[0]"]))
-        with torch.no_grad():
-            lp_sim = network.forward({'data': torch.tensor([sim_observation['data']])}, {'model': torch.tensor([[0], [1]])})
-        # # print(lp_sim.logratios)
-        # model_probabilities = get_class_probs(logratios, params=["model[0]"])
-        # print(model_probabilities)
+    print("Real data generation")
+    A_real = simulator.sample(Nsim,
+            targets=["data"], conditions={"model": np.array([1])}
+        )
 
-        model_probabilities2 = get_class_probs(lp_sim, params=["model[0]"])
-        print(model_probabilities2)
+    network.eval()
+    with torch.no_grad():
+        lp_sim_0 = np.array(network.forward({'data': torch.tensor(A_sim['data'])}, {'model': torch.tensor([[0]])}).logratios).T[0]
+        lp_sim_1 = np.array(network.forward({'data': torch.tensor(A_sim['data'])}, {'model': torch.tensor([[1]])}).logratios).T[0]
+        lp_real_0 = np.array(network.forward({'data': torch.tensor(A_real['data'])}, {'model': torch.tensor([[0]])}).logratios).T[0]
+        lp_real_1 = np.array(network.forward({'data': torch.tensor(A_real['data'])}, {'model': torch.tensor([[1]])}).logratios).T[0]
+    
+    model_probabilities_saved_sims = np.zeros((Nsim, 3))
+    model_probabilities_saved_real = np.zeros((Nsim, 3))
 
-        C0 = model_probabilities2[1] / model_probabilities2[0]
-        model_probabilities_saved_sims[i, -2:] = model_probabilities2
-        model_probabilities_saved_sims[i, 0] = C0
+    model_probabilities_saved_sims[:, -2] = np.exp(lp_sim_0 )/ (np.exp(lp_sim_0 )+ np.exp(lp_sim_1))
+    model_probabilities_saved_sims[:, -1] = np.exp(lp_sim_1 )/ (np.exp(lp_sim_0 )+ np.exp(lp_sim_1))
+    model_probabilities_saved_sims[:, 0] = model_probabilities_saved_sims[:, -1] / model_probabilities_saved_sims[:, -2] 
+
+    model_probabilities_saved_real[:, -2] = np.exp(lp_real_0) / (np.exp(lp_real_0) + np.exp(lp_real_1))
+    model_probabilities_saved_real[:, -1] = np.exp(lp_real_1) / (np.exp(lp_real_0) + np.exp(lp_real_1))
+    model_probabilities_saved_real[:, 0] = model_probabilities_saved_real[:, -1] / model_probabilities_saved_real[:, -2] 
+
     np.save(
         f"result-sims-{epoch}.npy",
         np.array(model_probabilities_saved_sims),
     )
-
-    model_probabilities_saved_real = np.zeros((Nsim, 3))
-    # sim_observations = simulator.sample(Nsim,
-    #         targets=["data"], conditions={"model": np.array([1])}
-    #     )
-    # with torch.no_grad():
-    #     lp_sim_0 = network({'data': torch.tensor(sim_observations['data'])}, {'model': torch.tensor(sim_observations['model'])}).logratios
-    #     lp_sim_1 = network({'data': torch.tensor(sim_observations['data'])}, {'model': torch.tensor([[1]])}).logratios
-    # print(lp_sim_0)
-    # print(lp_sim_1)
-    for i in tqdm.tqdm(range(0, Nsim)):
-        real_observation = simulator.sample(
-            targets=["data"], conditions={"model": np.array([1])}
-        )
-        #sim_observation = sim_observations[i]
-        # logratios = trainer.infer(
-        #     network, real_observation, prior_samples.get_dataloader(batch_size=2048)
-        # )
-        with torch.no_grad():
-            lp_real = network.forward({'data': torch.tensor([real_observation['data']])}, {'model': torch.tensor([[0], [1]])})
-
-        # model_probabilities = get_class_probs(logratios, params=["model[0]"])
-        # print(model_probabilities)
-
-        model_probabilities2 = get_class_probs(lp_real, params=["model[0]"])
-        print(model_probabilities2)
-
-        C0 = model_probabilities2[1] / model_probabilities2[0]
-        model_probabilities_saved_real[i, -2:] = model_probabilities2
-        model_probabilities_saved_real[i, 0] = C0
     np.save(
         f"result-real-{epoch}.npy",
         np.array(model_probabilities_saved_real),
@@ -164,3 +129,5 @@ if __name__ == "__main__":
         color="tab:red",
     )
     plt.savefig(f'viewer-{epoch}.png')
+
+    
