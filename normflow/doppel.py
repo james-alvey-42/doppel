@@ -10,6 +10,8 @@ if __name__ == "__main__":
     """
     )
 
+from typing import Sequence, Union
+from pytorch_lightning.callbacks.callback import Callback
 import swyft
 import swyft.lightning as sl
 import numpy as np
@@ -69,7 +71,26 @@ class RatioEstimator(swyft.SwyftModule):
         self.online_normalisation = swyft.networks.OnlineStandardizingLayer(
             shape=torch.Size([2])
         )
-        self.optimizer_init = swyft.AdamOptimizerInit(lr=1e-4)
+        self.learning_rate = 1e-4
+        self.early_stopping_patience = 7
+        #self.optimizer_init = swyft.AdamOptimizerInit(lr=1e-4)
+
+    def configure_callbacks(self):
+        lr_monitor = LearningRateMonitor(logging_interval="step")
+        early_stopping_callback = EarlyStopping(
+            monitor="val_loss",
+            min_delta=0.0,
+            patience=7,
+            verbose=False,
+            mode="min",
+        )
+        checkpoint_callback = ModelCheckpoint(
+            monitor="val_loss",
+            dirpath=f"my_path",
+            filename="{epoch}_{val_loss:.2f}_{train_loss:.2f}",
+            mode="min",
+        )
+        return [lr_monitor, early_stopping_callback, checkpoint_callback]
 
     def forward(self, A, B):
         data = A["data"]
@@ -187,7 +208,9 @@ def setup_trainer(trainer_dir, early_stopping, device, n_gpus, min_epochs, max_e
         min_epochs=min_epochs,
         max_epochs=max_epochs,
         logger=logger_tbl,
-        callbacks=[lr_monitor, early_stopping_callback, checkpoint_callback],
+        callbacks=[lr_monitor, 
+                   early_stopping_callback, 
+                   checkpoint_callback],
     )
     return trainer
 

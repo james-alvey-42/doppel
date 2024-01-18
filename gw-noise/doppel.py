@@ -11,6 +11,7 @@ if __name__ == "__main__":
     )
 
 import swyft
+sversion = swyft.__version__
 import swyft.lightning as sl
 import numpy as np
 import os
@@ -88,7 +89,11 @@ class RatioEstimator(swyft.SwyftModule):
         self.online_normalisation = swyft.networks.OnlineStandardizingLayer(
             shape=torch.Size([10])
         )
-        self.optimizer_init = swyft.AdamOptimizerInit(lr=1e-4)
+        if sversion == '0.4.5':
+            self.learning_rate = 1e-4
+            self.early_stopping = 7
+        else:
+            self.optimizer_init = swyft.AdamOptimizerInit(lr=1e-4)
 
     def forward(self, A, B):
         data = A["data"]
@@ -231,7 +236,7 @@ if __name__ == "__main__":
 
     config = {
         "store_name": f"gw-noise-store",
-        "store_size": 200_000,
+        "store_size": 100_000,
         "chunk_size": 500,
         "observation_path": None,
         "logratios_path": f"gw-noise-logratios",
@@ -240,9 +245,9 @@ if __name__ == "__main__":
         "train_fraction": 0.9,
         "train_batch_size": 1024,
         "val_batch_size": 1024,
-        "num_workers": 8,
-        "device": "gpu",
-        "n_gpus": 1,
+        "num_workers": 0,
+        "device": "cpu",
+        "n_gpus": 0,
         "min_epochs": 1,
         "max_epochs": 100,
         "early_stopping": 7,

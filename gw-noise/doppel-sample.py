@@ -39,9 +39,9 @@ if __name__ == "__main__":
         "train_fraction": 0.9,
         "train_batch_size": 1024,
         "val_batch_size": 1024,
-        "num_workers": 8,
-        "device": "gpu",
-        "n_gpus": 1,
+        "num_workers": 0,
+        "device": "cpu",
+        "n_gpus": 0,
         "min_epochs": 1,
         "max_epochs": 100,
         "early_stopping": 7,
@@ -118,4 +118,5 @@ if __name__ == "__main__":
         alpha=0.5,
         color="tab:red",
     )
-    plt.savefig('/home/alveyjbg/viewer.png')
+    plt.show()
+    #plt.savefig('/home/alveyjbg/viewer.png')
