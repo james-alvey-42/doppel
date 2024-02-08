@@ -1,0 +1,51 @@
+{
+    "os": "macOS-14.3-arm64-arm-64bit",
+    "python": "3.11.7",
+    "heartbeatAt": "2024-02-08T19:36:35.471781",
+    "startedAt": "2024-02-08T19:36:35.428133",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "sampling_properties.yaml"
+    ],
+    "state": "running",
+    "program": "/Users/james/Code/doppel/sampling_properties/sampling_properties.py",
+    "codePathLocal": "sampling_properties.py",
+    "codePath": "sampling_properties/sampling_properties.py",
+    "git": {
+        "remote": "git@github.com:james-alvey-42/doppel.git",
+        "commit": "293b75d11538cac1d0a3fde55460c3dcdb391d0d"
+    },
+    "email": "44205066+james-alvey-42@users.noreply.github.com",
+    "root": "/Users/james/Code/doppel",
+    "host": "Jamess-MacBook-Pro-5.local",
+    "username": "james",
+    "executable": "/Users/james/Code/mambaforge/envs/default/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3228,
+        "min": 600,
+        "max": 3228
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3228,
+            "min": 600,
+            "max": 3228
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 460.4317207336426,
+            "used": 315.05838775634766
+        }
+    },
+    "gpuapple": {
+        "type": "arm",
+        "vendor": "Apple"
+    },
+    "memory": {
+        "total": 16.0
+    }
+}
