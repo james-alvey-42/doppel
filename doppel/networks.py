@@ -12,9 +12,6 @@ if swyft.__version__ != "0.4.5":
 class DoppelRatioEstimator(swyft.SwyftModule, swyft.AdamWReduceLROnPlateau):
     def __init__(self, settings={}):
         super().__init__()
-        self.compression_settings = settings.get(
-            "compression", {"use_compression": False, "num_features": 1}
-        )
         self.training_settings = settings.get("training", {})
         self.training_dir = self.training_settings.get(
             "training_dir", "doppel_training"
@@ -29,30 +26,22 @@ class DoppelRatioEstimator(swyft.SwyftModule, swyft.AdamWReduceLROnPlateau):
         self.lr_scheduler_patience = self.training_settings.get(
             "lr_scheduler_patience", 3
         )
-
-        if not self.compression_settings["use_compression"]:
-            self.compression = None
-        else:
-            self.compression = self.setup_compression()
-        self.num_features = self.compression_settings["num_features"]
+        self.num_features = self.training_settings.get("num_features", 1)
         self.model_estimator = swyft.LogRatioEstimator_1dim(
             num_features=self.num_features, num_params=1, varnames="model"
         )
 
+    def compression(self, data):
+        return data
+
     def forward(self, A, B):
         data = A["data"]
         model = B["model"].float()
-        if self.compression is not None:
-            summary = self.compression(data)
-            return self.model_estimator(summary, model)
-        else:
-            return self.model_estimator(data, model)
-
-    def setup_compression(self):
-        # TODO: [JA] Implement compressions
-        self.compression = None
+        summary = self.compression(data)
+        return self.model_estimator(summary, model)
 
     def configure_callbacks(self):
+        # TODO: [JA] Add learning rate monitor
         early_stop = EarlyStopping(
             monitor="val_loss",
             patience=getattr(self, "early_stopping_patience", 7),
@@ -69,6 +58,7 @@ class DoppelRatioEstimator(swyft.SwyftModule, swyft.AdamWReduceLROnPlateau):
         optimizer = torch.optim.AdamW(
             self.parameters(), lr=getattr(self, "learning_rate", 1e-4)
         )
+        # TODO: [JA] Implement other schedulers
         lr_scheduler = {
             "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
@@ -78,19 +68,6 @@ class DoppelRatioEstimator(swyft.SwyftModule, swyft.AdamWReduceLROnPlateau):
             "monitor": "val_loss",
         }
         return dict(optimizer=optimizer, lr_scheduler=lr_scheduler)
-
-
-class LinearCompression(nn.Module):
-    def __init__(self, hidden_size=16, n_features=1):
-        super(LinearCompression, self).__init__()
-        self.sequential = nn.Sequential(
-            nn.LazyLinear(hidden_size),
-            nn.ReLU(),
-            nn.LazyLinear(n_features),
-        )
-
-    def forward(self, x):
-        return self.sequential(x)
 
 
 def setup_trainer(device, n_devices, min_epochs, max_epochs, logger=None):
@@ -132,3 +109,57 @@ def setup_logger(training_settings):
             f"Logger: {training_settings['logger']['type']} not implemented, logging disabled"
         )
     return logger
+
+
+class ConvNet(nn.Module):
+    def __init__(self, input_shape, num_classes):
+        super(ConvNet, self).__init__()
+        self.num_channels = input_shape[0]
+        self.hx, self.hy = input_shape[1], input_shape[2]
+
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(
+                self.num_channels, 16, kernel_size=3, stride=1, padding=1
+            ),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        conv_output_size = self._get_conv_output_size(input_shape)
+        self.linear_layers = nn.Sequential(
+            nn.Linear(conv_output_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        x = x.view(x.size(0), -1)
+        x = self.linear_layers(x)
+        return x
+
+    def _get_conv_output_size(self, shape):
+        dummy_input = torch.zeros(1, *shape)
+        output = self.conv_layers(dummy_input)
+        output_size = output.view(output.size(0), -1).size(1)
+        return output_size
+
+
+class LinearCompression(nn.Module):
+    def __init__(self, hidden_size=10, n_features=1):
+        super(LinearCompression, self).__init__()
+        self.sequential = nn.Sequential(
+            nn.LazyLinear(hidden_size),
+            nn.ReLU(),
+            nn.LazyLinear(hidden_size),
+            nn.ReLU(),
+            nn.LazyLinear(n_features),
+        )
+
+    def forward(self, x):
+        return self.sequential(x)
