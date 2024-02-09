@@ -46,10 +46,25 @@ def compute_doppel_factor(
     if plot:
         plt.figure(figsize=(12, 6))
         ax = plt.subplot(1, 2, 1)
-        plt.hist(result1, bins=x_bins, density=True)
-        plt.hist(result2, bins=x_bins, density=True)
+        plt.hist(
+            result1, bins=x_bins, density=True, histtype="step", color="#648FFF"
+        )
+        plt.hist(
+            result2, bins=x_bins, density=True, histtype="step", color="#DC267F"
+        )
+        plt.hist(result1, bins=x_bins, density=True, alpha=0.2, color="#648FFF")
+        plt.hist(
+            result2,
+            bins=x_bins,
+            density=True,
+            alpha=0.2,
+            color="#DC267F",
+        )
+        plt.xlabel(r"$\log_{10} C_0(x)$")
         ax = plt.subplot(1, 2, 2)
         plt.plot(x_grid, fit_kl(x_grid) * 0.5)
+        plt.xlabel(r"$\log_{10} C_0(x)$")
+        plt.ylabel(r"$\mathrm{d}JSD/\mathrm{d}\log_10 C_0(x)$")
         plt.tight_layout()
         plt.savefig(plot_dir + "/doppel_factor.pdf")
     return 0.5 * simpson(y=fit_kl(x_grid), x=x_grid)

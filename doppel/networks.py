@@ -81,7 +81,8 @@ def setup_trainer(device, n_devices, min_epochs, max_epochs, logger=None):
     return trainer
 
 
-def setup_logger(training_settings):
+def setup_logger(settings):
+    training_settings = settings.get("training", {"logger": {"type": None}})
     if training_settings["logger"]["type"] is None:
         logger = None
     elif training_settings["logger"]["type"] == "wandb":
@@ -93,6 +94,7 @@ def setup_logger(training_settings):
             project=training_settings["logger"].get("project", "doppel"),
             entity=training_settings["logger"]["entity"],
             log_model=training_settings["logger"].get("log_model", "all"),
+            config=settings,
         )
     elif training_settings["logger"]["type"] == "tensorboard":
         logger = TensorBoardLogger(

@@ -98,7 +98,7 @@ def train(network, settings):
         train_batch_size=training_settings["train_batch_size"],
         val_batch_size=training_settings["val_batch_size"],
     )
-    logger = setup_logger(training_settings)
+    logger = setup_logger(settings)
     trainer = setup_trainer(
         device=training_settings["device"],
         n_devices=training_settings["n_devices"],
